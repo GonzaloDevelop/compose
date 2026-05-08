@@ -63,6 +63,22 @@ services:
   kong:
     image: kong:2.8.1
     restart: unless-stopped
+    networks:
+      - default
+      - easypanel
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=easypanel"
+      - "traefik.http.routers.supabase-api.rule=Host(`api-supabase.growthbrick.tech`)"
+      - "traefik.http.routers.supabase-api.entrypoints=https"
+      - "traefik.http.routers.supabase-api.tls=true"
+      - "traefik.http.routers.supabase-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.supabase-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.supabase-api-http.rule=Host(`api-supabase.growthbrick.tech`)"
+      - "traefik.http.routers.supabase-api-http.entrypoints=http"
+      - "traefik.http.routers.supabase-api-http.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
     volumes:
       # https://github.com/supabase/supabase/issues/12661
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
@@ -72,7 +88,6 @@ services:
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
-      # https://github.com/supabase/cli/issues/14
       KONG_DNS_ORDER: LAST,A,CNAME
       KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction
       KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
@@ -81,7 +96,6 @@ services:
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    # https://unix.stackexchange.com/a/294837
     entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml &&
       /docker-entrypoint.sh kong docker-start'
 
@@ -486,3 +500,6 @@ services:
 
 volumes:
   db-config:
+networks:
+  easypanel:
+    external: true
