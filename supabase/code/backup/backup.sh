@@ -126,8 +126,10 @@ rm -f "$TMP_FILE"
 
 # ─── 4. Borrar backups remotos más viejos que RETENTION_DAYS ────────────────
 echo "[4/4] Retención: borrar backups con > ${RETENTION_DAYS} días"
-CUTOFF_DATE=$(date -u -d "${RETENTION_DAYS} days ago" +%Y%m%d 2>/dev/null || \
-              date -u -v-${RETENTION_DAYS}d +%Y%m%d)
+# BusyBox-compatible (Alpine): calcular epoch del cutoff y formatear
+CUTOFF_EPOCH=$(( $(date -u +%s) - RETENTION_DAYS * 86400 ))
+CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y%m%d 2>/dev/null || \
+              date -u -r "${CUTOFF_EPOCH}" +%Y%m%d)
 
 # Listar todos los backups en el bucket y filtrar por fecha en el filename
 aws s3 ls "s3://${B2_BUCKET}/" --endpoint-url "$B2_ENDPOINT" \
