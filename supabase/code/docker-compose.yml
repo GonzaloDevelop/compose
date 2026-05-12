@@ -60,6 +60,8 @@ services:
       # Uncomment to use Big Query backend for analytics
       # NEXT_ANALYTICS_BACKEND_PROVIDER: bigquery
 
+      
+
   kong:
     image: kong:2.8.1
     restart: unless-stopped
@@ -497,6 +499,29 @@ services:
         "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat
           /etc/pooler/pooler.exs)\" && /app/bin/server"
       ]
+      
+  growthbrick-backup:
+    build:
+      context: https://github.com/GonzaloDevelop/crm-growth-brick.git#main:infra/backup
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      B2_BUCKET: ${B2_BUCKET}
+      B2_KEY_ID: ${B2_KEY_ID}
+      B2_APP_KEY: ${B2_APP_KEY}
+      B2_ENDPOINT: ${B2_ENDPOINT}
+      B2_REGION: ${B2_REGION}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      CRM_BACKUP_REPORT_URL: ${CRM_BACKUP_REPORT_URL}
+      CRON_SECRET: ${CRON_SECRET}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do /usr/local/bin/backup.sh || true; sleep 3600; done"]
+    restart: unless-stopped
+    depends_on:
+      - db
 
 volumes:
   db-config:
