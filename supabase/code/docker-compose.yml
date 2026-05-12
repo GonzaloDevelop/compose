@@ -502,7 +502,7 @@ services:
       
   growthbrick-backup:
     build:
-      context: https://github.com/GonzaloDevelop/crm-growth-brick.git#main:infra/backup
+      context: ./backup
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
