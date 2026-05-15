@@ -397,8 +397,6 @@ services:
       - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
-      # Volume compartido con wal-archiver para Point-in-Time Recovery
-      - wal-archive:/wal-archive
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "postgres", "-h", "localhost" ]
       interval: 5s
@@ -423,13 +421,7 @@ services:
         "-c",
         "config_file=/etc/postgresql/postgresql.conf",
         "-c",
-        "log_min_messages=fatal", # prevents Realtime polling queries from appearing in logs
-        "-c",
-        "archive_mode=on",
-        "-c",
-        "archive_timeout=300",
-        "-c",
-        "archive_command=test ! -f /wal-archive/%f && cp %p /wal-archive/%f"
+        "log_min_messages=fatal" # prevents Realtime polling queries from appearing in logs
       ]
 
   vector:
@@ -508,22 +500,6 @@ services:
           /etc/pooler/pooler.exs)\" && /app/bin/server"
       ]
       
-  wal-archiver:
-    build:
-      context: ./wal-archiver
-    environment:
-      B2_BUCKET: ${B2_BUCKET}
-      B2_KEY_ID: ${B2_KEY_ID}
-      B2_APP_KEY: ${B2_APP_KEY}
-      B2_ENDPOINT: ${B2_ENDPOINT}
-      B2_REGION: ${B2_REGION}
-      WAL_RETENTION_DAYS: ${WAL_RETENTION_DAYS:-14}
-    volumes:
-      - wal-archive:/wal-archive
-    restart: unless-stopped
-    depends_on:
-      - db
-
   growthbrick-backup:
     build:
       context: ./backup
@@ -549,7 +525,6 @@ services:
 
 volumes:
   db-config:
-  wal-archive:
 networks:
   easypanel:
     external: true
